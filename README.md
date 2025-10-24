@@ -36,7 +36,7 @@ Cloud infrastructure including:
 
 ## API Setup
 
-1. Add your Google Routes API key in GenerateRoutes.py (line 23):
+1. Add your Google Routes API key in VirtualTachograph/RoutesGenerator/code/GenerateRoutes.py (line 23):
 ```bash
 'X-Goog-Api-Key':'your_api_key_here'
 ```
