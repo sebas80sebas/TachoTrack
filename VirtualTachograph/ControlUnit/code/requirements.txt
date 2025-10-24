@@ -1,0 +1,3 @@
+requests
+math
+paho-mqtt
