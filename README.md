@@ -34,6 +34,12 @@ Cloud infrastructure including:
 - Python 3.11+
 - Mosquitto MQTT client (for testing)
 
+## API Setup
+
+1. Add your Google Routes API key in GenerateRoutes.py (line 23):
+```bash
+'X-Goog-Api-Key':'your_api_key_here'
+```
 ### Running the System
 
 1. Start Cloud Services:
