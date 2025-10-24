@@ -6,12 +6,106 @@ This project simulates a digital tachograph system with cloud integration throug
 
 ### 1. Virtual Tachograph (`/VirtualTachograph`)
 
-Simulates tachograph hardware with:
-- Control Unit 
-- Card Reader
-- GPS/GNSS
-- Odometer
-- Routes Generator
+The Virtual Tachograph simulates a complete digital tachograph system using interconnected Docker containers:
+
+#### Components
+
+##### Control Unit
+- Central management component
+- Handles communication between all components
+- Connects to cloud MQTT broker
+- Processes and validates data from sensors
+- Manages driver card authentication
+- Generates events and warnings
+
+##### Card Reader
+- Simulates driver card insertion/removal
+- Random simulation of different drivers
+- Communicates card status to Control Unit
+- Supports multiple driver IDs
+
+##### GPS/GNSS System
+- Simulates vehicle positioning
+- Provides real-time coordinates
+- Calculates GPS-based speed
+- Follows routes from Route Generator
+
+##### Odometer
+- Simulates vehicle speed measurements
+- Provides independent speed data
+- Allows comparison with GPS speed
+- Supports variable sampling rates
+
+##### Routes Generator
+- Creates realistic route simulations
+- Uses Google Routes API
+- Generates:
+  - GPS coordinates
+  - Speed profiles
+  - Journey durations
+  - Route segments
+
+#### Network Architecture
+
+![Virtual Tachograph Architecture](figures/VirtualTachographArchitecture.png)
+
+#### Container Communication
+- Internal network: `simulator_network`
+- Control Unit port: 5000
+- GPS port: 5000
+- Odometer port: 6000
+- MQTT port: 1883 (external)
+
+#### Development Setup
+
+1. Add your Google Routes API key in VirtualTachograph/RoutesGenerator/code/GenerateRoutes.py (line 23):
+```bash
+'X-Goog-Api-Key':'your_api_key_here'
+```
+
+2. Build and run containers:
+```bash
+cd VirtualTachograph
+docker compose build
+docker compose up -d
+```
+
+3. Check container status:
+```bash
+docker compose ps
+```
+
+4. View logs:
+```bash
+# All containers
+docker compose logs -f
+
+# Specific container
+docker compose logs -f tachograph_control_unit
+```
+
+5. Stop simulation:
+```bash
+docker compose down
+```
+
+#### Data Flow
+1. Route Generator creates journey simulation
+2. Position data sent to GPS simulator
+3. Speed data sent to Odometer simulator
+4. Card Reader simulates driver presence
+5. Control Unit:
+   - Collects all sensor data
+   - Validates measurements
+   - Detects events (speeding, no driver, etc.)
+   - Sends data to cloud via MQTT
+
+#### Configuration Options
+- Sampling frequencies adjustable
+- Route endpoints configurable
+- Speed variation parameters
+- Event detection thresholds
+- MQTT connection settings
 
 ### 2. IoT Cloud Services (`/IoTCloudServices`)
 
@@ -34,12 +128,6 @@ Cloud infrastructure including:
 - Python 3.11+
 - Mosquitto MQTT client (for testing)
 
-## API Setup
-
-1. Add your Google Routes API key in VirtualTachograph/RoutesGenerator/code/GenerateRoutes.py (line 23):
-```bash
-'X-Goog-Api-Key':'your_api_key_here'
-```
 ### Running the System
 
 1. Start Cloud Services:
