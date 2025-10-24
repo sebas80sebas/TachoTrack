@@ -1,0 +1,99 @@
+services:
+  # Control Unit - Main component that manages the tachograph system
+  tachograph_control_unit:
+    build: ./ControlUnit              # Build from Dockerfile in ControlUnit directory
+    image: tachograph_control_unit    # Name of the built image
+    container_name: tachograph_control_unit  # Container name in Docker
+    environment:
+      - PYTHONUNBUFFERED=1           # Enable real-time Python output logging
+      - UC_SIMULATOR_PORT=5000        # Port for Control Unit communications
+      - MQTT_SERVER_ADDRESS=34.163.134.147  # Remote MQTT broker IP (Google Cloud)
+      - MQTT_SERVER_PORT=1883         # Standard MQTT port
+      # Hostnames for identifying incoming socket connections
+      - ODOMETER_SIMULATOR_HOST=tachograph_odometer
+      - GNSS_SIMULATOR_HOST=tachograph_positioning_system
+      - CARD_READER_HOST=tachograph_card_reader
+    volumes:
+      - ./ControlUnit/code:/etc/usr/src/code  # Mount code directory for development
+    networks:
+      - simulator_network             # Connect to internal Docker network
+
+  # Card Reader - Simulates driver card interactions
+  tachograph_card_reader:
+    build: ./CardReader
+    image: tachograph_card_reader
+    container_name: tachograph_card_reader
+    environment:
+      - PYTHONUNBUFFERED=1
+      - UC_SIMULATOR_HOST=tachograph_control_unit  # Hostname for Control Unit connection
+      - UC_SIMULATOR_PORT=5000                     # Control Unit port
+    depends_on:
+      - tachograph_control_unit      # Ensure Control Unit starts first
+      - tachograph_positioning_system
+    volumes:
+      - ./CardReader/code:/etc/usr/src/code
+    networks:
+      - simulator_network
+
+  # Positioning System - Simulates GPS/GNSS functionality
+  tachograph_positioning_system:
+    build: ./PositioningSystem
+    image: tachograph_positioning_system
+    container_name: tachograph_positioning_system
+    environment:
+      - PYTHONUNBUFFERED=1    
+      - GNSS_SIMULATOR_PORT=5000      # Port for receiving position data
+      - UC_SIMULATOR_HOST=tachograph_control_unit
+      - UC_SIMULATOR_PORT=5000
+    depends_on:
+      - tachograph_control_unit
+    ports:
+      - "5000:5000"                   # Expose port to host machine
+    volumes:
+      - ./PositioningSystem/code:/etc/usr/src/code
+    networks:
+      - simulator_network
+
+  # Odometer - Simulates vehicle speed measurements
+  tachograph_odometer:
+    build: ./Odometer
+    image: tachograph_odometer
+    container_name: tachograph_odometer
+    environment:
+      - PYTHONUNBUFFERED=1 
+      - ODOMETER_SIMULATOR_PORT=6000   # Port for receiving speed data
+      - UC_SIMULATOR_HOST=tachograph_control_unit
+      - UC_SIMULATOR_PORT=5000
+    depends_on:
+      - tachograph_control_unit
+      - tachograph_positioning_system
+    volumes:
+      - ./Odometer/code:/etc/usr/src/code
+    networks:
+      - simulator_network
+
+  # Routes Generator - Creates simulated vehicle routes
+  tachograph_route_generator:
+    build: ./RoutesGenerator
+    image: tachograph_route_generator
+    container_name: tachograph_route_generator
+    environment:
+      - PYTHONUNBUFFERED=1 
+      # Connection details for sending route data
+      - GPS_SIMULATOR_HOST=tachograph_positioning_system
+      - GPS_SIMULATOR_PORT=5000
+      - ODOMETER_SIMULATOR_HOST=tachograph_odometer
+      - ODOMETER_SIMULATOR_PORT=6000
+    depends_on:
+      - tachograph_positioning_system  # Wait for dependent services
+      - tachograph_odometer
+    volumes:
+      - ./RoutesGenerator/code:/etc/usr/src/code
+    networks:
+      - simulator_network
+
+# Network Configuration
+networks:
+  simulator_network:
+    driver: bridge    # Create isolated network for containers
+
